@@ -258,6 +258,23 @@ func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx) Find() (resu
 	return result, a.tx.Find(&result)
 }
 
+func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx) FindByPage(offset int, limit int) (result {{if eq $relationship "HasMany" "ManyToMany"}}[]{{end}}*{{$relation.Type}}, count int64, err error) {
+	a.tx.DB.Offset(offset).Limit(limit)
+	err = a.tx.Find(&result)
+	if err != nil {
+		return
+	}
+
+	if size := len(result); 0 < limit && 0 < size && size < limit {
+		count = int64(size + offset)
+		return
+	}
+	
+	a.tx.DB.Offset(-1).Limit(-1)
+	count, err = a.tx.Count()
+	return
+}
+
 func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx) Append(values ...*{{$relation.Type}}) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
